@@ -1,0 +1,38 @@
+package com.example.orderservice.controller;
+
+import com.example.orderservice.model.Order;
+import com.example.orderservice.service.OrderService;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/orders")
+public class OrderController {
+
+    private final OrderService orderService;
+
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    @GetMapping
+    public List<Order> getOrders() {
+        return orderService.getAllOrders();
+    }
+
+    @PostMapping
+    public String createOrder(@RequestBody Order order) {
+        //check if the user in order request actually exists or not
+        boolean validation = orderService.validateUser(order.getUserid());
+        if(! validation)
+        {
+            return "Invalid User, can't create order!!";
+        }
+        else
+        {
+            orderService.createOrder(order);
+            return "Order with UserId"+ order.getUserid()+"created successfully!!";
+        }
+    }
+}
