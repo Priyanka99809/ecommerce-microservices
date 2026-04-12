@@ -3,11 +3,11 @@ package com.example.orderservice.model;
 public class Order {
     private Long id;
     private Long userId;
-    private double productId;
+    private Long productId;
 
     public Order() {}
 
-    public Order(Long id, Long userId, double productId) {
+    public Order(Long id, Long userId, Long productId) {
         this.id = id;
         this.userId = userId;
         this.productId = productId;
@@ -19,6 +19,6 @@ public class Order {
     public Long getUserid() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    public double getProductId() { return productId; }
-    public void setProductId(double price) { this.productId = productId; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
 }
