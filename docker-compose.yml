@@ -10,17 +10,22 @@ services:
     environment:
       - USER_SERVICE_URL=http://user-service:8082
       - PRODUCT_SERVICE_URL=http://product-service:8083
-    restart: always
+#    restart: always
   user-service:
     build: ./userservice
     networks:
       - microservices-network
-    restart: always
+#    restart: always
   product-service:
     build: ./productservice
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://product-db:3306/productdb
     networks:
       - microservices-network
-    restart: always
+#    restart: always
+    depends_on:
+      product-db:
+         condition: service_healthy
   api-gateway:
     build: ./api-gateway
     ports:
@@ -31,5 +36,22 @@ services:
       - user-service
       - order-service
       - product-service
+#  adding database
+  product-db:
+    container_name: product-db
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: productdb
+    ports:
+      - "3307:3306"
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   microservices-network:

@@ -1,5 +1,6 @@
 package com.example.productservice.service;
 
+import com.example.productservice.repository.ProductRepository;
 import com.example.productservice.model.Product;
 import org.springframework.stereotype.Service;
 
@@ -9,16 +10,27 @@ import java.util.List;
 @Service
 public class ProductService {
 
-    private List<Product> products = new ArrayList<>();
-    private Long idCounter = 10L;
+    //importing ProductRepository
+    private final ProductRepository productRepository;
+
+    public ProductService(ProductRepository productRepository) {
+         this.productRepository= productRepository;
+    }
+
+//    private Long idCounter = 10L;
 
     public List<Product> getAllProducts() {
-        return products;
+        return productRepository.findAll();
+    }
+
+    public Product getProductById(Long id)
+    {
+        return productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
     }
 
     public Product createProduct(Product product) {
-        product.setId(idCounter++);
-        products.add(product);
+//        product.setId(idCounter++);
+        productRepository.save(product);
         return product;
     }
 }

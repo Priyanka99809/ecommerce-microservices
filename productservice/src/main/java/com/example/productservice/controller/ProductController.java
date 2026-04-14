@@ -22,13 +22,10 @@ public class ProductController {
     public List<Product> getProducts() {
         return productService.getAllProducts();
     }
+
     @GetMapping("/{id}")
     public Product getProductById(@PathVariable Long id) {
-        return productService.getAllProducts()
-                .stream()
-                .filter(p -> p.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        return productService.getProductById(id);
     }
 
     @PostMapping
