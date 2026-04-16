@@ -1,5 +1,8 @@
 package com.example.orderservice.model;
+import com.example.orderservice.repository.OrderRepository;
 
+@Entity
+@Table(name="Order")
 public class Order {
     private Long id;
     private Long userId;
