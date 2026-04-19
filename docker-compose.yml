@@ -3,30 +3,63 @@
 services:
   order-service:
     build: ./orderservice
+    container_name: order-service
     networks:
       - microservices-network
     depends_on:
-      - user-service
+      user-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      order-db:
+          condition: service_healthy
     environment:
       - USER_SERVICE_URL=http://user-service:8082
       - PRODUCT_SERVICE_URL=http://product-service:8083
-#    restart: always
+      - SPRING_DATABASE_URL=jdbc:mysql://order-db:3306/orderdb
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    restart: always
   user-service:
     build: ./userservice
+    container_name: user-service
+    depends_on:
+      user-db:
+        condition: service_healthy
+    restart: always
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://user-db:3306/productdb
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
     networks:
       - microservices-network
-#    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
   product-service:
     build: ./productservice
+    container_name: product-service
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://product-db:3306/productdb
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
     networks:
       - microservices-network
-#    restart: always
+    restart: always
     depends_on:
       product-db:
-         condition: service_healthy
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8083/actuator/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
   api-gateway:
+    container_name: api-gateway
     build: ./api-gateway
     ports:
       - "8080:8080"
@@ -64,16 +97,36 @@ services:
       MYSQL_DATABASE: orderdb
       MYSQL_ROOT_PASSWORD: root
     networks:
-      microservices-network:
-    volumes:
-      - order-db-data:/var/lib/mysql
+      - microservices-network
     healthcheck:
       test: ["CMD","mysqladmin","ping","-h","localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+    volumes:
+      - order-db-data:/var/lib/mysql
+
+  user-db:
+    container_name: user-db
+    image: mysql:8
+    environment:
+      MYSQL_DATABASE: userdb
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3309:3306"
+    networks:
+      microservices-network:
+    healthcheck:
+      test: ["CMD","mysqladmin","ping","-h","localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - user-db-data:/var/lib/mysql
 
 networks:
   microservices-network:
 volumes:
   product-db-data:
+  order-db-data:
+  user-db-data:
