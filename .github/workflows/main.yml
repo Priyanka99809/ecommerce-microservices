@@ -15,9 +15,9 @@ jobs:
             echo "::XYZ123::"
             echo "::warning file=app.js,line=10::This WILL now be processed"
 
-      - name: Print commit
+      - name: Print state
         run: |
-           echo "Commit: ${{ github.sha }}"
+           echo $GITHUB_STATE
 
       - name: Print repo
         run: |
