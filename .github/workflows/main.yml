@@ -7,12 +7,13 @@ jobs:
   show:
     runs-on: ubuntu-latest
     steps:
-      - name: Print branch
+      - name: Print stop commands
         run: |
-            echo "::group::Build logs"
-            echo "compiling..."
-            echo "running tests..."
-            echo "::endgroup::"
+            echo "::stop-commands::ABC" 
+            echo "::warning file=app.js,line=10::This will NOT be processed"
+            echo "normal log still prints"
+            echo "::XYZ123::"
+            echo "::warning file=app.js,line=10::This WILL now be processed"
 
       - name: Print commit
         run: |
