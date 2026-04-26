@@ -1,11 +1,17 @@
 name: GitHub Context Demo
-on: 
+
+on:
   workflow_dispatch:
 
 jobs:
   show:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Branch: ${{ github.ref }}"
-      - run: echo "Commit: ${{ github.sha }}"
-      - run: echo "Actor: ${{ github.actor }}"
+      - name: Print branch
+        run: echo "Branch: ${{ github.ref }}"
+
+      - name: Print commit
+        run: echo "Commit: ${{ github.sha }}"
+
+      - name: Print actor
+        run: echo "Actor: ${{ github.actor }}"
