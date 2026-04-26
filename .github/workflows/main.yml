@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Print stop commands
         run: |
-            echo "::stop-commands::ABC" 
+            echo "::stop-commands::XYZ123" 
             echo "::warning file=app.js,line=10::This will NOT be processed"
             echo "normal log still prints"
             echo "::XYZ123::"
