@@ -9,7 +9,10 @@ jobs:
     steps:
       - name: Print branch
         run: |
-            echo "::error file=app.js,line=10::Bug found"
+            echo "::group::Build logs"
+            echo "compiling..."
+            echo "running tests..."
+            echo "::endgroup::"
 
       - name: Print commit
         run: |
