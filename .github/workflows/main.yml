@@ -1,24 +1,23 @@
-name: GitHub Context Demo
+name: Node CI
 
-on:
-  workflow_dispatch:
+on: push
 
 jobs:
-  show:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Print stop commands
-        run: |
-            echo "::stop-commands::XYZ123" 
-            echo "::warning file=app.js,line=10::This will NOT be processed"
-            echo "normal log still prints"
-            echo "::XYZ123::"
-            echo "::warning file=app.js,line=10::This WILL now be processed"
+      - uses: actions/checkout@v6
 
-      - name: Print state
-        run: |
-           echo $GITHUB_STATE
+      - name: Cache npm
+        id: cache-npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
 
-      - name: Print repo
-        run: |
-           echo "Actor: ${{ github.repository }}"
+      - name: Install dependencies
+        run: npm install
+
+      - name: Show cache key
+        run: echo "Cache key = ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}"
