@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Print branch
         run: |
-            echo "Branch: ${{ github.ref }}"
+            echo "::error file=app.js,line=10::Bug found"
 
       - name: Print commit
         run: |
