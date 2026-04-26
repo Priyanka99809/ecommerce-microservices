@@ -1,0 +1,10 @@
+name: GitHub Context Demo
+on: push
+
+jobs:
+  show:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Branch: ${{ github.ref }}"
+      - run: echo "Commit: ${{ github.sha }}"
+      - run: echo "Actor: ${{ github.actor }}"
