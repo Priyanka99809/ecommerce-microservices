@@ -8,10 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print branch
-        run: echo "Branch: ${{ github.ref }}"
+        run: |
+            echo "Branch: ${{ github.ref }}"
 
       - name: Print commit
-        run: echo "Commit: ${{ github.sha }}"
+        run: |
+           echo "Commit: ${{ github.sha }}"
 
       - name: Print actor
-        run: echo "Actor: ${{ github.actor }}"
+        run: |
+           echo "Actor: ${{ github.actor }}"
