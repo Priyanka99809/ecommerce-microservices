@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/reusable.yml@main
+    uses: ./.github/workflows/reusable.yml
     with:
       name: Baby
     secrets: inherit
