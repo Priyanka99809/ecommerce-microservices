@@ -1,16 +1,23 @@
 name: Artifacts
 
-on: push
+on:
+  workflow_call:
+   inputs:
+     name: 
+       required: true
+       type: string
 
 jobs:
   build:
+    env:
+       my_name: ${{ inputs.name }}
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
 
       - run: |
-          echo "Hello World" >> my_output.txt
+          echo "Hello World $my_name" >> my_output.txt
 
       - uses: actions/upload-artifact@v6
         with:
