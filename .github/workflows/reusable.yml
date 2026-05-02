@@ -18,6 +18,7 @@ jobs:
 
       - run: |
           echo "Hello World $my_name" >> my_output.txt
+          echo "Env is: $my_name"
 
       - uses: actions/upload-artifact@v4
         with:
