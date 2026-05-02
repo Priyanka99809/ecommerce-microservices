@@ -1,0 +1,17 @@
+name: caller workflow
+
+on: 
+  push
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable.yml@main
+    with:
+      name: Baby
+    secrets: inherit
+
+  runn:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Workflow finished !"
+      
