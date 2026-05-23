@@ -1,36 +1,60 @@
-# Full AWS + Terraform + GitHub Actions Deployment for Spring Boot Microservices
+# Microservices E-Commerce App Deployment on AWS
 
-# Goal
+## Overview
 
-We will build a complete deployment pipeline:
+This project demonstrates a complete DevOps deployment pipeline for a microservices-based e-commerce application using:
 
-```text
-GitHub Push
-    ↓
-GitHub Actions
-    ↓
-Terraform
-    ↓
-AWS EC2 Provisioning
-    ↓
-Docker Compose Deployment
-    ↓
-Spring Boot Microservices Running on AWS
-```
-
-This setup includes:
-
+* Java Spring Boot microservices
+* Docker & Docker Compose
 * Terraform Infrastructure as Code
-* AWS EC2 provisioning
-* Security groups
-* Docker installation via EC2 user_data
-* GitHub Actions CI/CD pipeline
-* SSH-based automated deployment
-* Docker Compose orchestration
+* GitHub Actions CI/CD
+* AWS EC2
+* AWS Security Groups
+
+The deployment pipeline automatically:
+
+1. Creates infrastructure on AWS using Terraform
+2. Launches an EC2 instance
+3. Installs Docker automatically
+4. Copies application files to EC2
+5. Deploys containers using Docker Compose
 
 ---
 
-# FINAL PROJECT STRUCTURE
+# Architecture
+
+```text
+Developer Push
+      ↓
+GitHub Actions
+      ↓
+Terraform
+      ↓
+AWS EC2 + Security Group
+      ↓
+Docker + Docker Compose
+      ↓
+Spring Boot Microservices
+```
+
+---
+
+# Technologies Used
+
+| Technology          | Purpose                       |
+| ------------------- | ----------------------------- |
+| Spring Boot         | Backend microservices         |
+| Docker              | Containerization              |
+| Docker Compose      | Multi-container orchestration |
+| Terraform           | Infrastructure provisioning   |
+| GitHub Actions      | CI/CD automation              |
+| AWS EC2             | Virtual server hosting        |
+| AWS Security Groups | Firewall/security rules       |
+| GitHub Secrets      | Secure credential storage     |
+
+---
+
+# Project Structure
 
 ```text
 project-root/
@@ -40,150 +64,159 @@ project-root/
 │       └── deploy.yml
 │
 ├── terraform/
+│   ├── main.tf
 │   ├── provider.tf
 │   ├── variables.tf
-│   ├── main.tf
-│   ├── outputs.tf
-│   └── terraform.tfvars
-│
-├── api-gateway/
-│   ├── Dockerfile
-│   └── ...
-│
-├── user-service/
-│   ├── Dockerfile
-│   └── ...
-│
-├── order-service/
-│   ├── Dockerfile
-│   └── ...
-│
-├── product-service/
-│   ├── Dockerfile
-│   └── ...
+│   └── outputs.tf
 │
 ├── docker-compose.yml
+│
+├── user-service/
+├── product-service/
+├── order-service/
+├── api-gateway/
 │
 └── README.md
 ```
 
 ---
 
-# STEP 1: CREATE AWS IAM USER
+# AWS Setup
 
-Go to AWS Console.
+## Step 1: Create AWS Account
 
-Open:
+Create an AWS account if you do not already have one.
+
+AWS Console:
+
+[https://aws.amazon.com/](https://aws.amazon.com/)
+
+---
+
+# Step 2: Create EC2 Key Pair
+
+Go to:
 
 ```text
-IAM → Users → Create User
+AWS Console
+  → EC2
+  → Key Pairs
+  → Create Key Pair
 ```
 
-Permissions:
+Example:
 
-Attach:
+```text
+Name: ecommerce-key
+Type: RSA
+Format: .pem
+```
+
+Download the `.pem` file and store it safely.
+
+Example:
+
+```text
+ecommerce-key.pem
+```
+
+Important:
+
+* Never commit `.pem` files to GitHub
+* Keep the file secure
+* AWS does not allow re-downloading the key
+
+---
+
+# Step 3: Create IAM User for GitHub Actions
+
+Go to:
+
+```text
+AWS Console
+  → IAM
+  → Users
+  → Create User
+```
+
+Example username:
+
+```text
+github-actions-user
+```
+
+Attach permissions:
 
 ```text
 AdministratorAccess
 ```
 
-Create access key:
-
-```text
-Security Credentials → Create Access Key
-```
-
-Save:
-
-* AWS_ACCESS_KEY_ID
-* AWS_SECRET_ACCESS_KEY
-
-These will be used in GitHub Secrets.
+Note:
+This is acceptable for learning projects.
+Production environments should use least-privilege IAM policies.
 
 ---
 
-# STEP 2: CREATE SSH KEY
+# Step 4: Generate Access Keys
 
-Run locally:
-
-```bash
-ssh-keygen -t rsa -b 4096 -f ecommerce-key
-```
-
-Files generated:
+Inside the IAM user:
 
 ```text
-ecommerce-key
-ecommerce-key.pub
+Security Credentials
+  → Create Access Key
 ```
 
-Private key:
+Select:
 
 ```text
-ecommerce-key
+CLI / Programmatic Access
 ```
 
-Public key:
+AWS will generate:
 
 ```text
-ecommerce-key.pub
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
 ```
+
+Store these safely.
 
 ---
 
-# STEP 3: TERRAFORM SETUP
+# Terraform Configuration
 
----
-
-# terraform/provider.tf
+## Example EC2 Instance
 
 ```hcl
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
+resource "aws_instance" "ecommerce_server" {
+  ami           = "ami-0f58b397bc5c1f2e8"
+  instance_type = "t2.medium"
+
+  key_name = "ecommerce-key"
+
+  security_groups = [aws_security_group.ecommerce_sg.name]
+
+  user_data = <<-EOF
+              #!/bin/bash
+              apt update -y
+              apt install docker.io docker-compose git -y
+              systemctl start docker
+              systemctl enable docker
+              EOF
+
+  tags = {
+    Name = "ecommerce-server"
   }
 }
-
-provider "aws" {
-  region = var.aws_region
-}
 ```
 
 ---
 
-# terraform/variables.tf
+# Security Group Configuration
+
+## Example Security Group
 
 ```hcl
-variable "aws_region" {
-  default = "ap-south-1"
-}
-
-variable "instance_type" {
-  default = "t2.micro"
-}
-
-variable "key_name" {
-  default = "ecommerce-key"
-}
-
-variable "public_key_path" {
-  default = "./ecommerce-key.pub"
-}
-```
-
----
-
-# terraform/main.tf
-
-```hcl
-resource "aws_key_pair" "deployer" {
-  key_name   = var.key_name
-  public_key = file(var.public_key_path)
-}
-
 resource "aws_security_group" "ecommerce_sg" {
   name = "ecommerce-sg"
 
@@ -208,37 +241,21 @@ resource "aws_security_group" "ecommerce_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
-resource "aws_instance" "ecommerce_server" {
-  ami           = "ami-03bb6d83c60fc5f7c"
-  instance_type = var.instance_type
-
-  key_name = aws_key_pair.deployer.key_name
-
-  vpc_security_group_ids = [aws_security_group.ecommerce_sg.id]
-
-  user_data = <<-EOF
-              #!/bin/bash
-
-              apt update -y
-
-              apt install docker.io docker-compose git -y
-
-              systemctl start docker
-              systemctl enable docker
-
-              usermod -aG docker ubuntu
-              EOF
-
-  tags = {
-    Name = "ecommerce-server"
-  }
-}
 ```
 
 ---
 
-# terraform/outputs.tf
+# What These Rules Mean
+
+| Port       | Purpose                        |
+| ---------- | ------------------------------ |
+| 22         | SSH access                     |
+| 8080       | Spring Boot application        |
+| Egress All | Allow outbound internet access |
+
+---
+
+# Terraform Output
 
 ```hcl
 output "public_ip" {
@@ -246,277 +263,153 @@ output "public_ip" {
 }
 ```
 
----
+Purpose:
 
-# STEP 4: DEPLOY TERRAFORM
-
-Go inside terraform folder.
-
-```bash
-terraform init
-```
-
-Then:
-
-```bash
-terraform plan
-```
-
-Then:
-
-```bash
-terraform apply
-```
-
-Type:
-
-```text
-yes
-```
-
-Terraform will create:
-
-* EC2 instance
-* security group
-* key pair
-
-At the end you will see:
-
-```text
-public_ip = x.x.x.x
-```
-
-Save this IP.
+* Exposes the EC2 public IP
+* Used later by GitHub Actions for SSH and deployment
 
 ---
 
-# STEP 5: TEST SSH CONNECTION
-
-Run:
-
-```bash
-ssh -i ecommerce-key ubuntu@YOUR_PUBLIC_IP
-```
-
-If connected successfully:
-
-Your EC2 is ready.
-
----
-
-# STEP 6: CREATE DOCKERFILES
-
-Each service needs a Dockerfile.
-
----
-
-# Example Dockerfile
-
-Create inside every service:
-
-```text
-api-gateway/Dockerfile
-```
-
-```dockerfile
-FROM eclipse-temurin:17
-
-WORKDIR /app
-
-COPY target/*.jar app.jar
-
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
-
-Repeat for:
-
-* user-service
-* product-service
-* order-service
-
----
-
-# STEP 7: CREATE docker-compose.yml
-
-At project root:
-
-```yaml
-version: '3'
-
-services:
-
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "8080:8080"
-    depends_on:
-      - user-service
-      - product-service
-      - order-service
-
-  user-service:
-    build: ./user-service
-    ports:
-      - "8081:8081"
-
-  product-service:
-    build: ./product-service
-    ports:
-      - "8082:8082"
-
-  order-service:
-    build: ./order-service
-    ports:
-      - "8083:8083"
-```
-
----
-
-# STEP 8: FIX SPRING DATABASE HOSTS
-
-DO NOT use:
-
-```properties
-localhost
-```
-
-Inside Docker:
-
-containers communicate using service names.
-
-Example:
-
-```properties
-spring.datasource.url=jdbc:mysql://mysql-user:3306/userdb
-```
-
----
-
-# STEP 9: PUSH PROJECT TO GITHUB
-
-Create GitHub repository.
-
-Then:
-
-```bash
-git init
-
-git add .
-
-git commit -m "initial commit"
-
-git branch -M main
-
-git remote add origin YOUR_REPO_URL
-
-git push -u origin main
-```
-
----
-
-# STEP 10: ADD GITHUB SECRETS
+# GitHub Repository Secrets
 
 Go to:
 
 ```text
-GitHub Repository → Settings → Secrets and Variables → Actions
+GitHub Repository
+  → Settings
+  → Secrets and variables
+  → Actions
 ```
 
-Add:
+Add the following secrets:
 
-| Secret                | Value                     |
-| --------------------- | ------------------------- |
-| AWS_ACCESS_KEY_ID     | AWS access key            |
-| AWS_SECRET_ACCESS_KEY | AWS secret                |
-| EC2_HOST              | EC2 public IP             |
-| EC2_USER              | ubuntu                    |
-| EC2_SSH_KEY           | contents of ecommerce-key |
+| Secret                | Value                   |
+| --------------------- | ----------------------- |
+| AWS_ACCESS_KEY_ID     | AWS IAM access key      |
+| AWS_SECRET_ACCESS_KEY | AWS IAM secret key      |
+| EC2_SSH_KEY           | Contents of `.pem` file |
 
 ---
 
-# STEP 11: CREATE GITHUB ACTIONS WORKFLOW
+# GitHub Actions Workflow
 
-Create:
+Location:
 
 ```text
 .github/workflows/deploy.yml
 ```
 
-# STEP 12: PUSH CHANGES
-
-Run:
-
-```bash
-git add .
-
-git commit -m "add deployment pipeline"
-
-git push
-```
-
-GitHub Actions will start automatically.
-
----
-
-# STEP 13: WATCH GITHUB ACTIONS
-
-Go to:
+## What the Workflow Does
 
 ```text
-GitHub Repository → Actions
+Push to main
+      ↓
+GitHub Actions starts
+      ↓
+Terraform creates EC2
+      ↓
+EC2 installs Docker
+      ↓
+Project files copied to EC2
+      ↓
+Docker Compose deploys app
 ```
 
-You will see deployment logs.
-
 ---
 
-# STEP 14: ACCESS APPLICATION
+# Example Workflow
 
-Open:
+```yaml
+name: Deploy E-Commerce App
 
-```text
-http://YOUR_PUBLIC_IP:8080
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  terraform-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Get EC2 Public IP
+        run: |
+          echo "EC2_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
+      - name: Wait for EC2
+        run: sleep 60
+
+      - name: Copy Project Files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/home/ubuntu/ecommerce-app"
+
+      - name: Deploy Application
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/ecommerce-app
+
+            sudo docker-compose down
+
+            sudo docker-compose up --build -d
 ```
 
-Your API Gateway should respond.
-
 ---
 
-# COMMON ERRORS
+# Docker Deployment
 
----
-
-# 1. Permission Denied SSH
-
-Fix:
+## Start Containers
 
 ```bash
-chmod 400 ecommerce-key
+sudo docker-compose up --build -d
 ```
 
----
-
-# 2. Docker Permission Denied
-
-SSH into EC2:
+## Stop Containers
 
 ```bash
-sudo usermod -aG docker ubuntu
+sudo docker-compose down
 ```
 
-Then:
+## Check Running Containers
 
 ```bash
-newgrp docker
+docker ps
 ```
 
----
-
-# 3. Container Crashes
-
-Check logs:
+## View Logs
 
 ```bash
 docker logs CONTAINER_ID
@@ -524,117 +417,172 @@ docker logs CONTAINER_ID
 
 ---
 
-# 4. Port Already In Use
+# Accessing the Application
+
+After deployment:
+
+```text
+http://EC2_PUBLIC_IP:8080
+```
+
+Example:
+
+```text
+http://3.110.xx.xx:8080
+```
+
+---
+
+# SSH Into EC2
+
+```bash
+ssh -i ecommerce-key.pem ubuntu@EC2_PUBLIC_IP
+```
+
+Example:
+
+```bash
+ssh -i ecommerce-key.pem ubuntu@3.110.xx.xx
+```
+
+---
+
+# Common Issues
+
+## Permission Denied SSH Error
+
+Fix:
+
+```bash
+chmod 400 ecommerce-key.pem
+```
+
+---
+
+## Docker Command Not Found
+
+SSH into EC2 and verify Docker installation:
+
+```bash
+docker --version
+```
+
+---
+
+## Terraform Authentication Error
+
+Verify GitHub Secrets:
+
+* AWS_ACCESS_KEY_ID
+* AWS_SECRET_ACCESS_KEY
+
+---
+
+## Port 8080 Not Accessible
 
 Check:
 
+* EC2 running
+* Security Group allows port 8080
+* Docker containers are running
+
+---
+
+# Security Improvements for Production
+
+Current setup is optimized for learning.
+
+Production improvements should include:
+
+* Restrict SSH access to your IP only
+* Use HTTPS with Load Balancer
+* Store Terraform state remotely in S3
+* Use IAM roles instead of long-lived access keys
+* Use private subnets for databases
+* Use Auto Scaling Groups
+* Use ECS or EKS for orchestration
+
+---
+
+# CI/CD Flow Summary
+
+```text
+Developer pushes code
+        ↓
+GitHub Actions triggered
+        ↓
+Terraform provisions infrastructure
+        ↓
+EC2 boots and installs Docker
+        ↓
+Files copied via SCP
+        ↓
+SSH deployment executed
+        ↓
+Docker Compose starts services
+        ↓
+Application becomes live
+```
+
+---
+
+# Useful Commands
+
+## Terraform
+
+```bash
+terraform init
+terraform plan
+terraform apply
+terraform destroy
+```
+
+---
+
+## Docker
+
 ```bash
 docker ps
-```
-
-Kill old containers.
-
----
-
-# 5. EC2 Not Reachable
-
-Check security group:
-
-* port 22
-* port 8080
-
-must be open.
-
----
-
-# OPTIONAL NEXT-LEVEL IMPROVEMENTS
-
----
-
-# Add Docker Hub
-
-Instead of copying code:
-
-* build Docker images
-* push to Docker Hub
-* pull images on EC2
-
-Professional approach.
-
----
-
-# Add AWS ECR
-
-Use AWS container registry.
-
-More cloud-native.
-
----
-
-# Add Nginx
-
-Use reverse proxy.
-
-Enable:
-
-* custom domain
-* HTTPS
-* SSL
-
----
-
-# Add Terraform Remote State
-
-Store Terraform state in:
-
-* S3 bucket
-
-Used in real teams.
-
----
-
-# Add ECS
-
-Future architecture:
-
-```text
-GitHub Actions
-      ↓
-Terraform
-      ↓
-AWS ECS Fargate
-```
-
-Enterprise-grade deployment.
-
----
-
-# FINAL RESUME DESCRIPTION
-
-```text
-• Built and deployed a microservices-based e-commerce platform using Spring Boot, Docker, and MySQL
-• Provisioned AWS infrastructure using Terraform, including EC2 instances and security groups
-• Implemented CI/CD pipelines using GitHub Actions for automated deployment to AWS
-• Orchestrated containerized services using Docker Compose with inter-service networking
-• Automated cloud infrastructure provisioning and application deployment using Infrastructure as Code principles
+docker images
+docker-compose up -d
+docker-compose down
 ```
 
 ---
 
-# FINAL DEPLOYMENT FLOW
+# Learning Concepts Covered
 
-```text
-Developer Pushes Code
-        ↓
-GitHub Actions Triggered
-        ↓
-Maven Builds JARs
-        ↓
-Files Copied to EC2
-        ↓
-Docker Compose Builds Containers
-        ↓
-Microservices Start
-        ↓
-Application Live on AWS
-```
+This project demonstrates:
+
+* Infrastructure as Code
+* CI/CD pipelines
+* Cloud deployment
+* EC2 provisioning
+* Docker containerization
+* Security Groups
+* SSH authentication
+* Terraform automation
+* GitHub Actions workflows
+* Microservices deployment
+
+---
+
+# Future Enhancements
+
+Potential improvements:
+
+* Kubernetes deployment
+* ECS migration
+* Monitoring with Prometheus & Grafana
+* Blue-Green deployments
+* Nginx reverse proxy
+* HTTPS with ACM
+* Route53 custom domains
+* RDS for managed databases
+* Terraform remote backend
+
+---
+
+# Author
+
+Built as a DevOps + Cloud deployment learning project demonstrating end-to-end automated infrastructure provisioning and application deployment on AWS.

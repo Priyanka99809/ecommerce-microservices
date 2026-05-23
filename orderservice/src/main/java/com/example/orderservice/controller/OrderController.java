@@ -28,7 +28,7 @@ public class OrderController {
         //check if this product actually exists in product service
         boolean validate_product= orderService.validateProduct(order.getProductId());
         if(! validation)
-        {
+        { 
             return "Invalid User, can't create order!!";
         }
         if(!validate_product)

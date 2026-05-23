@@ -1,0 +1,72 @@
+name: Deploy E-Commerce App
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  terraform-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # AWS Credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
+          aws-region: ap-south-1
+
+      # Terraform Setup
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Terraform Init
+      - name: Terraform Init
+        run: terraform init
+
+      # Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      # Capture Public IP
+      - name: Get EC2 Public IP
+        id: terraform_output
+        run: |
+          echo "EC2_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+
+      # Wait for EC2 startup
+      - name: Wait for EC2
+        run: sleep 60
+
+      # Copy files to EC2
+      - name: Copy Project Files
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/home/ubuntu/ecommerce-app"
+
+      # Deploy containers
+      - name: Deploy Application
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/ecommerce-app
+
+            sudo docker-compose down
+
+            sudo docker-compose up --build -d
