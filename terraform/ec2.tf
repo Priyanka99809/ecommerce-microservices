@@ -1,7 +1,7 @@
 resource "aws_instance" "ecommerce_server" {
 
-  ami           = "ami-0f58b397bc5c1f2e8"
-  instance_type = "t2.micro"
+  ami           = "ami-05cf1e9f73fbad2e2"
+  instance_type = "t2.medium"
 
   key_name = "ecommerce-key"
 
