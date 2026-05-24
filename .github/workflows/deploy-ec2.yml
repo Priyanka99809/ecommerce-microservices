@@ -1,72 +1,297 @@
-name: Deploy E-Commerce App
+name: Full Infra + Docker Deployment Pipeline
 
 on:
   workflow_dispatch:
 
 jobs:
-
-  terraform-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: terraform
+    env:
+      AWS_REGION: us-east-1
 
     steps:
 
+      # =========================================
+      # Checkout Repository
+      # =========================================
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # AWS Credentials
+      # =========================================
+      # Configure AWS Credentials
+      # =========================================
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_ACCESS_KEY_SECRET }}
-          aws-region: ap-south-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      # Terraform Setup
+      # =========================================
+      # Setup Terraform
+      # =========================================
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      # =========================================
       # Terraform Init
+      # =========================================
       - name: Terraform Init
-        run: terraform init
-
-      # Terraform Apply
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-
-      # Capture Public IP
-      - name: Get EC2 Public IP
-        id: terraform_output
+        working-directory: terraform
         run: |
-          echo "EC2_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+          echo "======================================="
+          echo "Running Terraform Init"
+          echo "======================================="
 
-      # Wait for EC2 startup
-      - name: Wait for EC2
-        run: sleep 60
+          terraform init
 
-      # Copy files to EC2
-      - name: Copy Project Files
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ env.EC2_IP }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "."
-          target: "/home/ubuntu/ecommerce-app"
+      # =========================================
+      # Terraform Plan
+      # =========================================
+      - name: Terraform Plan
+        working-directory: terraform
+        run: |
+          echo "======================================="
+          echo "Running Terraform Plan"
+          echo "======================================="
 
-      # Deploy containers
+          terraform plan
+
+      # =========================================
+      # Terraform Apply
+      # =========================================
+      - name: Terraform Apply
+        working-directory: terraform
+        run: |
+          echo "======================================="
+          echo "Creating AWS Infrastructure"
+          echo "======================================="
+
+          terraform apply -auto-approve
+
+      # =========================================
+      # Fetch EC2 Public IP
+      # =========================================
+      - name: Fetch EC2 Public IP
+        working-directory: terraform
+        run: |
+          echo "======================================="
+          echo "Fetching EC2 Public IP"
+          echo "======================================="
+
+          EC2_IP=$(terraform output -raw ec2_public_ip)
+
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
+
+          echo "EC2 Public IP: $EC2_IP"
+
+      # =========================================
+      # Wait for EC2 Initialization
+      # =========================================
+      - name: Wait for EC2 Startup
+        run: |
+          echo "======================================="
+          echo "Waiting for EC2 Initialization"
+          echo "======================================="
+
+          sleep 60
+
+      # =========================================
+      # Create SSH Key
+      # =========================================
+      - name: Create SSH Key
+        run: |
+          echo "======================================="
+          echo "Creating SSH Key"
+          echo "======================================="
+
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+
+          chmod 600 private_key.pem
+
+          echo "SSH Key Created Successfully"
+
+      # =========================================
+      # Deploy Application to EC2
+      # =========================================
       - name: Deploy Application
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.EC2_IP }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/ecommerce-app
+        run: |
 
-            sudo docker-compose down
+          echo "======================================="
+          echo "Starting Application Deployment"
+          echo "======================================="
 
-            sudo docker-compose up --build -d
+          ssh -o StrictHostKeyChecking=no \
+              -i private_key.pem \
+              ubuntu@$EC2_IP << 'EOF'
+
+            set -e
+
+            echo ""
+            echo "======================================="
+            echo "Connected to EC2"
+            echo "======================================="
+
+            # ---------------------------------
+            # Update Ubuntu Packages
+            # ---------------------------------
+            echo ""
+            echo "Updating Ubuntu packages..."
+
+            sudo apt update -y
+
+            echo "Ubuntu packages updated successfully"
+
+            # ---------------------------------
+            # Install Required Packages
+            # ---------------------------------
+            echo ""
+            echo "Installing Docker, Docker Compose and Git..."
+
+            sudo apt install -y \
+              docker.io \
+              docker-compose-v2 \
+              git
+
+            echo "Dependencies installed successfully"
+
+            # ---------------------------------
+            # Start Docker
+            # ---------------------------------
+            echo ""
+            echo "Starting Docker service..."
+
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            echo "Docker service started successfully"
+
+            # ---------------------------------
+            # Verify Docker Installation
+            # ---------------------------------
+            echo ""
+            echo "Checking Docker versions..."
+
+            docker --version
+            docker compose version
+
+            echo "Docker verification completed"
+
+            # ---------------------------------
+            # Navigate to Home Directory
+            # ---------------------------------
+            echo ""
+            echo "Navigating to home directory..."
+
+            cd /home/ubuntu
+
+            # ---------------------------------
+            # Clone Repository if Needed
+            # ---------------------------------
+            echo ""
+            echo "Checking project repository..."
+
+            if [ ! -d "ecommerce-microservices" ]; then
+
+              echo "Repository not found"
+
+              echo "Cloning repository..."
+
+              git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+
+              echo "Repository cloned successfully"
+
+            else
+
+              echo "Repository already exists"
+
+            fi
+
+            # ---------------------------------
+            # Enter Repository
+            # ---------------------------------
+            echo ""
+            echo "Entering project directory..."
+
+            cd ecommerce-microservices
+
+            # ---------------------------------
+            # Pull Latest Code
+            # ---------------------------------
+            echo ""
+            echo "Pulling latest code..."
+
+            git pull origin main
+
+            echo "Repository updated successfully"
+
+            # ---------------------------------
+            # Stop Existing Containers
+            # ---------------------------------
+            echo ""
+            echo "Stopping old containers..."
+
+            sudo docker compose -f docker-compose.yml down || true
+
+            echo "Old containers removed successfully"
+
+            # ---------------------------------
+            # Build Docker Containers
+            # ---------------------------------
+            echo ""
+            echo "Building Docker containers..."
+
+            sudo docker compose -f docker-compose.yml build
+
+            echo "Docker images built successfully"
+
+            # ---------------------------------
+            # Start Docker Containers
+            # ---------------------------------
+            echo ""
+            echo "Starting all microservices..."
+
+            sudo docker compose -f docker-compose.yml up -d
+
+            echo "Microservices started successfully"
+
+            # ---------------------------------
+            # Wait for Containers
+            # ---------------------------------
+            echo ""
+            echo "Waiting for services initialization..."
+
+            sleep 25
+
+            echo "Services initialized successfully"
+
+            # ---------------------------------
+            # Display Running Containers
+            # ---------------------------------
+            echo ""
+            echo "======================================="
+            echo "RUNNING CONTAINERS"
+            echo "======================================="
+
+            sudo docker ps
+
+            # ---------------------------------
+            # Show Container Logs
+            # ---------------------------------
+            echo ""
+            echo "======================================="
+            echo "CONTAINER LOGS"
+            echo "======================================="
+
+            sudo docker compose -f docker-compose.yml logs --tail=30
+
+            # ---------------------------------
+            # Deployment Completed
+            # ---------------------------------
+            echo ""
+            echo "======================================="
+            echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
+            echo "======================================="
+
+          EOF
