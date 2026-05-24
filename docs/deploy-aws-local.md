@@ -7,6 +7,7 @@ From your project root:
 
 ```bash
 terraform init
+aws configure
 ````
 
 ---
@@ -16,6 +17,8 @@ terraform init
 ```bash
 terraform plan
 ```
+<img width="2588" height="1268" alt="image" src="https://github.com/user-attachments/assets/015418f7-ba07-459a-bfe9-43d0b3f00157" />
+
 
 This shows what AWS resources will be created.
 
@@ -122,6 +125,8 @@ Run in detached mode:
 ```bash
 sudo docker compose up --build -d
 ```
+<img width="2690" height="1200" alt="image" src="https://github.com/user-attachments/assets/fa66eae1-a083-416d-9312-80dc7e1413ab" />
+
 
 ---
 
@@ -177,6 +182,9 @@ http://<EC2_PUBLIC_IP>:8080/product/actuator/health
 ```text
 http://<EC2_PUBLIC_IP>:8080/user/actuator/health
 ```
+
+<img width="2176" height="1216" alt="image" src="https://github.com/user-attachments/assets/35158b6a-10db-4176-b4b5-810f72bc46c7" />
+
 
 ---
 
@@ -255,6 +263,11 @@ Check:
 * Routes configured correctly
 * All services running
 * Correct URL path used
+
+## Remove ALL Resources using terraform destroy 
+
+<img width="1896" height="946" alt="image" src="https://github.com/user-attachments/assets/c470d8d1-2e77-4bec-8e02-f9d089a3f10d" />
+
 
 ```
 ```
