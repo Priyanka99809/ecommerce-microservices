@@ -28,7 +28,7 @@ services:
         condition: service_healthy
     restart: always
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://user-db:3306/productdb
+      - SPRING_DATASOURCE_URL=jdbc:mysql://user-db:3306/userdb
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
     networks:
