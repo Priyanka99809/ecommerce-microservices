@@ -1,4 +1,4 @@
-name: Full Infra + Docker Deployment Pipeline
+name: Deploy Ecommerce System
 
 on:
   workflow_dispatch:
