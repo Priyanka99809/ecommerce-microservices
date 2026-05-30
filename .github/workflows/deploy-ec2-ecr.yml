@@ -220,7 +220,16 @@ jobs:
             echo "======================================="
             echo "Connected to EC2"
             echo "======================================="
-
+          
+#          if ! command -v docker >/dev/null 2>&1; then
+#            echo "Docker not found. Installing..."
+#
+#            sudo apt update -y
+#            sudo apt install -y docker.io docker-compose git awscli
+#
+#            sudo systemctl enable docker
+#            sudo systemctl start docker
+#          fi
           
            echo ""
            echo "Verifying installed tools..."
