@@ -10,28 +10,32 @@ resource "aws_instance" "ecommerce_server" {
   ]
 
   user_data = <<-EOF
-              user_data = <<-EOF
               #!/bin/bash -xe
 
-              apt update -y
+              exec > /var/log/user-data.log 2>&1
 
-              apt install -y docker.io git unzip
+              apt-get update -y
+              apt-get install -y curl unzip git docker.io
 
               systemctl enable docker
               systemctl start docker
-              systemctl restart docker
 
               usermod -aG docker ubuntu || true
 
-              # Docker Compose plugin
-              apt install -y docker-compose-plugin
+              until docker info >/dev/null 2>&1; do
+                echo "Waiting for Docker..."
+                sleep 3
+              done
 
-              # AWS CLI install
+              apt-get install -y docker-compose || true
+
               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
               unzip awscliv2.zip
               sudo ./aws/install
-
               rm -rf awscliv2.zip aws
+
+              aws --version || /usr/local/bin/aws --version
+
               EOF
 
   tags = {
