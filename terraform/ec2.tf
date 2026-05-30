@@ -22,7 +22,6 @@ resource "aws_instance" "ecommerce_server" {
     Name = "ecommerce-server"
   }
   # attaching profile that includes role that has permission of
-  iam_instance_profile =
-      aws_iam_instance_profile.ec2_profile.name
+  iam_instance_profile = aws_iam_instance_profile.ec2_profile.name
 
 }
