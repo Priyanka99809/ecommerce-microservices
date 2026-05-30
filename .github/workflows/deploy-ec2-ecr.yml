@@ -34,6 +34,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+
       # =========================================
       # Terraform Init
       # =========================================
@@ -70,6 +71,49 @@ jobs:
 
           terraform apply -auto-approve
 
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # =========================================
+      # Build ECR docker images
+      # =========================================
+      - name: Build and Push User Service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/user-service:latest \
+            ./userservice
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/user-service:latest
+
+      - name: Build and Push Product Service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/product-service:latest \
+            ./productservice
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/product-service:latest
+
+      - name: Build and Push Order Service
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/order-service:latest \
+            ./orderservice
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/order-service:latest
+
+      - name: Build and Push API Gateway
+        run: |
+          docker build \
+            -t ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest \
+            ./api-gateway
+
+          docker push \
+            ${{ steps.login-ecr.outputs.registry }}/api-gateway:latest
+
       # =========================================
       # Fetch EC2 Public IP
       # =========================================
@@ -85,6 +129,21 @@ jobs:
           echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
 
           echo "EC2 Public IP: $EC2_IP"
+
+      # =========================================
+      # Create SSH Key
+      # =========================================
+      - name: Create SSH Key
+        run: |
+          echo "======================================="
+          echo "Creating SSH Key"
+          echo "======================================="
+
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+
+          chmod 600 private_key.pem
+
+          echo "SSH Key Created Successfully"
 
       # =========================================
       # Wait for EC2 Initialization
@@ -105,20 +164,7 @@ jobs:
            sleep 10
            done
 
-      # =========================================
-      # Create SSH Key
-      # =========================================
-      - name: Create SSH Key
-        run: |
-          echo "======================================="
-          echo "Creating SSH Key"
-          echo "======================================="
 
-          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
-
-          chmod 600 private_key.pem
-
-          echo "SSH Key Created Successfully"
 
       # =========================================
       # Deploy Application to EC2
@@ -141,50 +187,16 @@ jobs:
             echo "Connected to EC2"
             echo "======================================="
 
-            # ---------------------------------
-            # Update Ubuntu Packages
-            # ---------------------------------
-            echo ""
-            echo "Updating Ubuntu packages..."
-
-            sudo apt update -y
-
-            echo "Ubuntu packages updated successfully"
-
-            # ---------------------------------
-            # Install Required Packages
-            # ---------------------------------
-            echo ""
-            echo "Installing Docker, Docker Compose and Git..."
-
-            sudo apt install -y \
-              docker.io \
-              docker-compose-v2 \
-              git
-
-            echo "Dependencies installed successfully"
-
-            # ---------------------------------
-            # Start Docker
-            # ---------------------------------
-            echo ""
-            echo "Starting Docker service..."
-
-            sudo systemctl start docker
-            sudo systemctl enable docker
-
-            echo "Docker service started successfully"
-
-            # ---------------------------------
-            # Verify Docker Installation
-            # ---------------------------------
-            echo ""
-            echo "Checking Docker versions..."
-
-            docker --version
-            docker compose version
-
-            echo "Docker verification completed"
+          
+           echo ""
+           echo "Verifying installed tools..."
+  
+           docker --version
+           docker-compose --version
+           git --version
+           aws --version
+  
+           echo "All required tools are available"
 
             # ---------------------------------
             # Navigate to Home Directory
@@ -240,14 +252,12 @@ jobs:
             echo ""
             echo "Stopping old containers..."
 
-            sudo docker compose -f docker-compose.yml down || true
+            sudo docker-compose -f docker-compose.yml down || true
           
-  
+          
             # Remove unused containers/images/networks
             sudo docker system prune -af
-  
-            # If you're still building on EC2
-            sudo docker builder prune -af
+          
 
             echo "Old containers removed successfully"
 
@@ -255,11 +265,26 @@ jobs:
             # Build Docker Containers
             # ---------------------------------
             echo ""
-            echo "Building Docker containers..."
+            echo "Logging into ECR..."
+            
+            echo "Verifying IAM Role..."
+  
+            aws sts get-caller-identity
+          
+            aws ecr get-login-password \
+            --region us-east-1 \
+            | sudo docker login \
+            --username AWS \
+            --password-stdin 703227779312.dkr.ecr.us-east-1.amazonaws.com
 
-            sudo docker compose -f docker-compose.yml build
-
-            echo "Docker images built successfully"
+            echo "ECR login successful"
+  
+            echo ""
+            echo "Pulling latest Docker images..."
+  
+            sudo docker-compose -f docker-compose.yml pull
+  
+            echo "Latest images downloaded successfully"
 
             # ---------------------------------
             # Start Docker Containers
@@ -267,7 +292,7 @@ jobs:
             echo ""
             echo "Starting all microservices..."
 
-            sudo docker compose -f docker-compose.yml up -d
+            sudo docker-compose -f docker-compose.yml up -d
 
             echo "Microservices started successfully"
 
@@ -288,7 +313,7 @@ jobs:
             echo "======================================="
             echo "RUNNING CONTAINERS"
             echo "======================================="
-
+ 
             sudo docker ps
 
             # ---------------------------------
@@ -299,8 +324,12 @@ jobs:
             echo "CONTAINER LOGS"
             echo "======================================="
 
-            sudo docker compose -f docker-compose.yml logs --tail=30
-
+            sudo docker-compose -f docker-compose.yml logs --tail=30
+            echo "Disk Usage After Deploy"
+            df -h
+  
+            echo "Docker Usage After Deploy"
+            sudo docker system df
             # ---------------------------------
             # Deployment Completed
             # ---------------------------------
