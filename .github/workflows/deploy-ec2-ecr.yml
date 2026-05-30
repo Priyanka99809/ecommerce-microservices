@@ -1,21 +1,5 @@
 name: Deploy Ecommerce System
 
-on:
-  workflow_dispatch:
-    inputs:
-      skip_terraform:
-        description: "Skip Terraform infrastructure creation"
-        required: true
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
-      ec2_ip:
-        description: "Existing EC2 Public IP (required when skip_terraform=true)"
-        required: false
-        type: string
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -45,7 +29,6 @@ jobs:
       # Setup Terraform
       # =========================================
       - name: Setup Terraform
-        if: github.event.inputs.skip_terraform != 'true'
         uses: hashicorp/setup-terraform@v3
 
 
@@ -53,20 +36,18 @@ jobs:
       # Terraform Init
       # =========================================
       - name: Terraform Init
-        if: github.event.inputs.skip_terraform != 'true'
         working-directory: terraform
         run: |
           echo "======================================="
           echo "Running Terraform Init"
           echo "======================================="
 
-          terraform init
+          terraform init -reconfigure
 
       # =========================================
       # Terraform Plan
       # =========================================
       - name: Terraform Plan
-        if: github.event.inputs.skip_terraform != 'true'
         working-directory: terraform
         run: |
           echo "======================================="
@@ -79,7 +60,6 @@ jobs:
       # Terraform Apply
       # =========================================
       - name: Terraform Apply
-        if: github.event.inputs.skip_terraform != 'true'
         working-directory: terraform
         run: |
           echo "======================================="
@@ -135,7 +115,6 @@ jobs:
       # Fetch EC2 Public IP
       # =========================================
       - name: Fetch EC2 Public IP
-        if: github.event.inputs.skip_terraform != 'true'
         working-directory: terraform
         run: |
           echo "======================================="
@@ -148,22 +127,11 @@ jobs:
 
           echo "EC2 Public IP: $EC2_IP"
 
-      - name: Validate Existing EC2 IP
-        if: github.event.inputs.skip_terraform == 'true'
-        run: |
-          if [ -z "${{ github.event.inputs.ec2_ip }}" ]; then
-            echo "ERROR: ec2_ip is required when skip_terraform=true"
-            exit 1
-          fi
-
-      - name: Use Existing EC2
-        if: github.event.inputs.skip_terraform == 'true'
-        run: |
-          echo "EC2_IP=${{ github.event.inputs.ec2_ip }}" >> $GITHUB_ENV
 
       - name: Show Deployment Target IP
         run: |
           echo "Deploying to: $EC2_IP"
+
       # =========================================
       # Create SSH Key
       # =========================================
@@ -221,11 +189,15 @@ jobs:
             echo "Connected to EC2"
             echo "======================================="
           
+          until command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; do
+            echo "Waiting for Docker to be ready..."
+            sleep 3
+          done
 #          if ! command -v docker >/dev/null 2>&1; then
 #            echo "Docker not found. Installing..."
 #
 #            sudo apt update -y
-#            sudo apt install -y docker.io docker-compose git awscli
+#            sudo apt install -y docker.io docker compose git awscli
 #
 #            sudo systemctl enable docker
 #            sudo systemctl start docker
@@ -235,7 +207,7 @@ jobs:
            echo "Verifying installed tools..."
   
            docker --version
-           docker-compose --version
+           docker compose --version
            git --version
            aws --version
   
@@ -295,7 +267,7 @@ jobs:
             echo ""
             echo "Stopping old containers..."
 
-            sudo docker-compose -f docker-compose.yml down || true
+            sudo docker compose -f docker-compose.yml down || true
           
           
             # Remove unused containers/images/networks
@@ -325,7 +297,7 @@ jobs:
             echo ""
             echo "Pulling latest Docker images..."
   
-            sudo docker-compose -f docker-compose.yml pull
+            sudo docker compose -f docker-compose.yml pull
   
             echo "Latest images downloaded successfully"
 
@@ -335,7 +307,7 @@ jobs:
             echo ""
             echo "Starting all microservices..."
 
-            sudo docker-compose -f docker-compose.yml up -d
+            sudo docker compose -f docker-compose.yml up -d
 
             echo "Microservices started successfully"
 
@@ -367,7 +339,7 @@ jobs:
             echo "CONTAINER LOGS"
             echo "======================================="
 
-            sudo docker-compose -f docker-compose.yml logs --tail=30
+            sudo docker compose -f docker-compose.yml logs --tail=30
             echo "Disk Usage After Deploy"
             df -h
   

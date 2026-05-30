@@ -10,8 +10,8 @@ resource "aws_instance" "ecommerce_server" {
   ]
 
   user_data = <<-EOF
-              #!/bin/bash
-              set -e
+              user_data = <<-EOF
+              #!/bin/bash -xe
 
               apt update -y
 
@@ -19,13 +19,19 @@ resource "aws_instance" "ecommerce_server" {
 
               systemctl enable docker
               systemctl start docker
+              systemctl restart docker
 
+              usermod -aG docker ubuntu || true
+
+              # Docker Compose plugin
               apt install -y docker-compose-plugin
 
-              # AWS CLI (safe modern install)
+              # AWS CLI install
               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
               unzip awscliv2.zip
               sudo ./aws/install
+
+              rm -rf awscliv2.zip aws
               EOF
 
   tags = {
