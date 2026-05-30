@@ -187,24 +187,21 @@ jobs:
 
             set -e
 
-            echo ""
-            echo "======================================="
-            echo "Connected to EC2"
-            echo "======================================="
+          echo ""
+          echo "======================================="
+          echo "Connected to EC2"
+          echo "======================================="
           
-          until command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; do
-            echo "Waiting for Docker to be ready..."
+          # Wait for docker daemon safely
+          until command -v docker >/dev/null 2>&1; do
+           echo "Waiting for Docker binary..."
+           sleep 3
+          done
+
+          until docker info >/dev/null 2>&1; do
+            echo "Waiting for Docker daemon..."
             sleep 3
           done
-#          if ! command -v docker >/dev/null 2>&1; then
-#            echo "Docker not found. Installing..."
-#
-#            sudo apt update -y
-#            sudo apt install -y docker.io docker compose git awscli
-#
-#            sudo systemctl enable docker
-#            sudo systemctl start docker
-#          fi
           
            echo ""
            echo "Verifying installed tools..."
