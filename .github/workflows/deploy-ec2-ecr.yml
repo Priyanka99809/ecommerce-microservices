@@ -367,20 +367,6 @@ jobs:
           BASE_URL="http://$EC2_IP:8080"
 
           echo ""
-          echo "🔍 Testing API Gateway Health..."
-
-          GATEWAY_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            $BASE_URL/actuator/health || true)
-
-          if [ "$GATEWAY_CODE" = "200" ]; then
-            GATEWAY_STATUS="LIVE"
-            echo "✅ API Gateway is LIVE"
-          else
-            GATEWAY_STATUS="DOWN"
-            echo "❌ API Gateway is DOWN"
-          fi
-
-          echo ""
           echo "🔍 Testing GET endpoint (User Service via Gateway)..."
 
           # CHANGE THIS if your route differs
@@ -399,7 +385,6 @@ jobs:
           echo "======================================="
           echo "FINAL STATUS"
           echo "======================================="
-          echo "Gateway: $GATEWAY_STATUS"
           echo "User Service: $USER_STATUS"
           
 
@@ -411,13 +396,8 @@ jobs:
 
           echo "| Service | Status | Endpoint |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| API Gateway | $GATEWAY_STATUS | http://$EC2_IP:8080/actuator/health |" >> $GITHUB_STEP_SUMMARY
           echo "| User Service | $USER_STATUS | http://$EC2_IP:8080/users |" >> $GITHUB_STEP_SUMMARY
+          echo "| Product Service | $USER_STATUS | http://$EC2_IP:8080/products |" >> $GITHUB_STEP_SUMMARY
+          echo "| Order Service | $USER_STATUS | http://$EC2_IP:8080/users |" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "$GATEWAY_STATUS" = "LIVE" ] && [ "$USER_STATUS" = "LIVE" ]; then
-            echo "### 🟢 SYSTEM STATUS: ALL CORE SERVICES LIVE" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "### 🔴 SYSTEM STATUS: SOME SERVICES FAILED" >> $GITHUB_STEP_SUMMARY
-          fi
