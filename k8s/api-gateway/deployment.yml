@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: api-gateway
+
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+
+    spec:
+      imagePullSecrets:
+        - name: ecr-secret
+
+      containers:
+        - name: api-gateway
+          image: 703227779312.dkr.ecr.us-east-1.amazonaws.com/api-gateway:latest
+
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8080
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
