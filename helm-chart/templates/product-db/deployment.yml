@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-db
+spec:
+  replicas: {{ .Values.productDB.replicas }}
+
+  selector:
+    matchLabels:
+      app: product-db
+
+  template:
+    metadata:
+      labels:
+        app: product-db
+
+    spec:
+      containers:
+        - name: product-db
+          image: "{{ .Values.productDB.image }}:{{ .Values.productDB.tag }}"
+          ports:
+            - containerPort: {{ .Values.productDB.containerPort}}
+          env:
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PRODUCT_MYSQL_DATABASE
+
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: MYSQL_ROOT_PASSWORD
+
+          startupProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - "-h"
+                - "127.0.0.1"
+                - "-uroot"
+                - "-proot"
+            periodSeconds: 5
+            failureThreshold: 30
+
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: {{ .Values.productDB.claimName }}

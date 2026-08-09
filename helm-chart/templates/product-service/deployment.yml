@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: product-service
 spec:
-  replicas: 1
+  replicas: {{ .Values.productService.replicas }}
 
   selector:
     matchLabels:
@@ -20,9 +20,9 @@ spec:
 
       containers:
         - name: product-service
-          image: 703227779312.dkr.ecr.us-east-1.amazonaws.com/product-service:latest
+          image: "{{ .Values.productService.image }}:{{ .Values.productService.tag }}"
           ports:
-            - containerPort: 8083
+            - containerPort: {{ .Values.productService.containerPort }}
           env:
             - name: SPRING_DATASOURCE_URL
               valueFrom:
@@ -45,13 +45,13 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8083
-            initialDelaySeconds: 90
-            periodSeconds: 10
+              port: {{ .Values.productService.containerPort }}
+            initialDelaySeconds: {{ .Values.productService.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.productService.readinessProbe.periodSeconds }}
 
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8083
-            initialDelaySeconds: 120
-            periodSeconds: 10
+              port: {{ .Values.productService.containerPort }}
+            initialDelaySeconds: {{ .Values.productService.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.productService.livenessProbe.periodSeconds }}

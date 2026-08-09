@@ -6,5 +6,5 @@ spec:
   selector:
     app: order-db
   ports:
-    - port: 3306
-      targetPort: 3306
+    - port: {{ .Values.orderDB.containerPort}}
+      targetPort: {{ .Values.orderDB.containerPort}}
