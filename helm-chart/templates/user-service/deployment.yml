@@ -21,6 +21,7 @@ spec:
       containers:
         - name: user-service
           image: "{{ .Values.userService.image }}:{{ .Values.userService.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.userService.containerPort }}
           env:

@@ -22,8 +22,7 @@ spec:
       containers:
         - name: api-gateway
           image: "{{ .Values.apiGateway.image }}:{{ .Values.apiGateway.tag }}"
-
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
 
           ports:
             - containerPort: {{ .Values.apiGateway.containerPort }}

@@ -21,6 +21,7 @@ spec:
       containers:
         - name: product-service
           image: "{{ .Values.productService.image }}:{{ .Values.productService.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.productService.containerPort }}
           env:

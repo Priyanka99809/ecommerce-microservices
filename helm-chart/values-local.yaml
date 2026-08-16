@@ -1,7 +1,7 @@
 apiGateway:
   replicas: 2
-  image: 703227779312.dkr.ecr.us-east-1.amazonaws.com/api-gateway
-  tag: latest
+  image: api-gateway
+  tag: local
   containerPort: 8080
   servicePort: 80
   readinessProbe:
@@ -13,8 +13,8 @@ apiGateway:
 
 orderService:
   replicas: 1
-  image: 703227779312.dkr.ecr.us-east-1.amazonaws.com/order-service
-  tag: latest
+  image: order-service
+  tag: local
   containerPort: 8081
   servicePort: 80
   readinessProbe:
@@ -26,8 +26,8 @@ orderService:
 
 productService:
   replicas: 1
-  image: 703227779312.dkr.ecr.us-east-1.amazonaws.com/product-service
-  tag: latest
+  image: product-service
+  tag: local
   containerPort: 8083
   servicePort: 80
   readinessProbe:
@@ -39,8 +39,8 @@ productService:
 
 userService:
   replicas: 1
-  image: 703227779312.dkr.ecr.us-east-1.amazonaws.com/user-service
-  tag: latest
+  image: user-service
+  tag: local
   containerPort: 8082
   servicePort: 80
   readinessProbe:
@@ -83,4 +83,4 @@ userDbPvc:
 productDbPvc:
   storage: 2Gi
 
-imagePullPolicy: Always
+imagePullPolicy: Never

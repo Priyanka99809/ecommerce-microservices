@@ -21,6 +21,7 @@ spec:
       containers:
         - name: order-service
           image: "{{ .Values.orderService.image }}:{{ .Values.orderService.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
             - containerPort: {{ .Values.orderService.containerPort }}
           env:
