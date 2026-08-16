@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-db
+spec:
+  selector:
+    app: order-db
+  ports:
+    - port: {{ .Values.orderDB.containerPort}}
+      targetPort: {{ .Values.orderDB.containerPort}}

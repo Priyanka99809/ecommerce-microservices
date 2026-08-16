@@ -1,0 +1,86 @@
+apiGateway:
+  replicas: 2
+  image: api-gateway
+  tag: local
+  containerPort: 8080
+  servicePort: 80
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 10
+
+orderService:
+  replicas: 1
+  image: order-service
+  tag: local
+  containerPort: 8081
+  servicePort: 80
+  readinessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+
+productService:
+  replicas: 1
+  image: product-service
+  tag: local
+  containerPort: 8083
+  servicePort: 80
+  readinessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+
+userService:
+  replicas: 1
+  image: user-service
+  tag: local
+  containerPort: 8082
+  servicePort: 80
+  readinessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+
+orderDB:
+  replicas: 1
+  image: mysql
+  tag: 8
+  containerPort: 3306
+  claimName: order-db-pvc
+
+productDB:
+  replicas: 1
+  image: mysql
+  tag: 8
+  containerPort: 3306
+  claimName: product-db-pvc
+
+userDB:
+  replicas: 1
+  image: mysql
+  tag: 8
+  containerPort: 3306
+  claimName: user-db-pvc
+
+ingress:
+  port: 80
+
+orderDbPvc:
+  storage: 2Gi
+
+userDbPvc:
+  storage: 2Gi
+
+productDbPvc:
+  storage: 2Gi
+
+imagePullPolicy: Never

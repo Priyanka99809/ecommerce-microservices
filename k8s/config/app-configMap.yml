@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+
+data:
+  USER_MYSQL_DATABASE: userdb
+  PRODUCT_MYSQL_DATABASE: productdb
+  ORDER_MYSQL_DATABASE: orderdb
+  SPRING_DATASOURCE_USERNAME: root
+  USER_SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/userdb
+  PRODUCT_SPRING_DATASOURCE_URL: jdbc:mysql://product-db:3306/productdb
+  ORDER_SPRING_DATASOURCE_URL: jdbc:mysql://order-db:3306/orderdb

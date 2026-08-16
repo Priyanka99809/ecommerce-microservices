@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  labels:
+    app: product-service
+spec:
+  selector:
+    app: product-service
+  ports:
+    - name: http
+      port: {{ .Values.productService.servicePort }}
+      targetPort: {{ .Values.productService.containerPort }}

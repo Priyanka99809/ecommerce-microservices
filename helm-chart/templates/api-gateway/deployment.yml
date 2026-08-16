@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+
+spec:
+  replicas: {{ .Values.apiGateway.replicas }}
+
+  selector:
+    matchLabels:
+      app: api-gateway
+
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+
+    spec:
+      imagePullSecrets:
+        - name: ecr-secret
+
+      containers:
+        - name: api-gateway
+          image: "{{ .Values.apiGateway.image }}:{{ .Values.apiGateway.tag }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+
+          ports:
+            - containerPort: {{ .Values.apiGateway.containerPort }}
+
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.apiGateway.containerPort }}
+            initialDelaySeconds: {{ .Values.apiGateway.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.apiGateway.readinessProbe.periodSeconds }}
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.apiGateway.containerPort }}
+            initialDelaySeconds: {{ .Values.apiGateway.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.apiGateway.livenessProbe.periodSeconds }}
